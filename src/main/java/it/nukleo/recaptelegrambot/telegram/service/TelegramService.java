@@ -1,16 +1,17 @@
-package it.nukleo.recaptelegrambot.service;
+package it.nukleo.recaptelegrambot.telegram.service;
 
 
-import it.nukleo.recaptelegrambot.config.GeminiApiClient;
-import it.nukleo.recaptelegrambot.config.TelegramApiClient;
-import it.nukleo.recaptelegrambot.dto.request.TelegramSendMessageDto;
-import it.nukleo.recaptelegrambot.dto.response.TelegramChatDto;
-import it.nukleo.recaptelegrambot.dto.response.TelegramMessageDto;
-import it.nukleo.recaptelegrambot.dto.response.TelegramUpdateDto;
-import it.nukleo.recaptelegrambot.entity.TelegramChatEntity;
-import it.nukleo.recaptelegrambot.entity.TelegramMessageEntity;
-import it.nukleo.recaptelegrambot.repository.TelegramChatRepository;
-import it.nukleo.recaptelegrambot.repository.TelegramMessageRepository;
+import it.nukleo.recaptelegrambot.llm.GeminiApiClient;
+import it.nukleo.recaptelegrambot.llm.LLmService;
+import it.nukleo.recaptelegrambot.telegram.TelegramApiClient;
+import it.nukleo.recaptelegrambot.telegram.dto.request.TelegramSendMessageDto;
+import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramChatDto;
+import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramMessageDto;
+import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramUpdateDto;
+import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramChatEntity;
+import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramMessageEntity;
+import it.nukleo.recaptelegrambot.telegram.persistence.repository.TelegramChatRepository;
+import it.nukleo.recaptelegrambot.telegram.persistence.repository.TelegramMessageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +25,7 @@ public class TelegramService {
     private final TelegramChatRepository telegramChatRepository;
     private final TelegramMessageRepository telegramMessageRepository;
     private final TelegramApiClient telegramApiClient;
-    private final GeminiApiClient geminiApiClient;
+    private final LLmService llmService;
 
     public void handleUpdate(TelegramUpdateDto update) {
         if(update.getMessage() != null) {
@@ -49,7 +50,20 @@ public class TelegramService {
             return;
         }
         if(text.startsWith("/gemini")){
-            this.generateContent(text, chatId);
+            String prompt = text.replaceFirst("^/gemini\\s*", "");
+            prompt = prompt + "\nRispondi solo con testo semplice, senza formattazione.\n" +
+                    "Non usare markdown, html, grassetto, corsivo, liste, blocchi di codice o tabelle.\n" +
+                    "Evita simboli speciali inutili.\n" +
+                    "Se ti serve fare un elenco, usa frasi normali separate da a capo.";
+
+            llmService.generateText(prompt)
+                    .thenAccept(text -> sendMessage(text, chatId))
+                    .exceptionally(ex-> {
+                        sendMessage("Errore nella generazione della risp", chatId);
+                        System.out.println("errore" +ex.getMessage());
+                        return null;
+                    });
+
             return;
         }
 
@@ -66,23 +80,6 @@ public class TelegramService {
         telegramSendMessageDto.setText(text);
         telegramApiClient.sendMessage(telegramSendMessageDto);
     }
-
-    private void generateContent(String text, Long chatId){
-        String prompt = text.replaceFirst("^/gemini\\s*", "");
-        prompt = prompt + "\nRispondi solo con testo semplice, senza formattazione.\n" +
-                "Non usare markdown, html, grassetto, corsivo, liste, blocchi di codice o tabelle.\n" +
-                "Evita simboli speciali inutili.\n" +
-                "Se ti serve fare un elenco, usa frasi normali separate da a capo.";
-
-        geminiApiClient.generateContentAsync(prompt)
-                .thenAccept(response -> sendMessage(response, chatId))
-                .exceptionally(ex-> {
-                    sendMessage("Errore nella generazione della risp", chatId);
-                    System.out.println("errore" +ex.getMessage());
-                    return null;
-                });
-    }
-
 
     //mappa e salva entita
 

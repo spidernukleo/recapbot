@@ -1,4 +1,4 @@
-package it.nukleo.recaptelegrambot.dto.response;
+package it.nukleo.recaptelegrambot.telegram.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -1,8 +1,8 @@
-package it.nukleo.recaptelegrambot.controller;
+package it.nukleo.recaptelegrambot.telegram.controller;
 
 
-import it.nukleo.recaptelegrambot.service.TelegramService;
-import it.nukleo.recaptelegrambot.dto.response.TelegramUpdateDto;
+import it.nukleo.recaptelegrambot.telegram.service.TelegramService;
+import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramUpdateDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
