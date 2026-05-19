@@ -1,7 +1,7 @@
-package it.nukleo.recaptelegrambot.llm.client;
+package it.nukleo.recaptelegrambot.config;
 
-import it.nukleo.recaptelegrambot.llm.dto.request.GeminiRequestDto;
-import it.nukleo.recaptelegrambot.llm.dto.response.GeminiResponseDto;
+import it.nukleo.recaptelegrambot.dto.request.GeminiRequestDto;
+import it.nukleo.recaptelegrambot.dto.response.GeminiResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;

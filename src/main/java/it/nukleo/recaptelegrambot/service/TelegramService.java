@@ -1,16 +1,16 @@
-package it.nukleo.recaptelegrambot.telegram.service;
+package it.nukleo.recaptelegrambot.service;
 
 
-import it.nukleo.recaptelegrambot.llm.service.GeminiApiService;
-import it.nukleo.recaptelegrambot.telegram.client.TelegramApiClient;
-import it.nukleo.recaptelegrambot.telegram.dto.request.TelegramSendMessageDto;
-import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramChatDto;
-import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramMessageDto;
-import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramUpdateDto;
-import it.nukleo.recaptelegrambot.telegram.entity.TelegramChatEntity;
-import it.nukleo.recaptelegrambot.telegram.entity.TelegramMessageEntity;
-import it.nukleo.recaptelegrambot.telegram.repository.TelegramChatRepository;
-import it.nukleo.recaptelegrambot.telegram.repository.TelegramMessageRepository;
+import it.nukleo.recaptelegrambot.config.GeminiApiClient;
+import it.nukleo.recaptelegrambot.config.TelegramApiClient;
+import it.nukleo.recaptelegrambot.dto.request.TelegramSendMessageDto;
+import it.nukleo.recaptelegrambot.dto.response.TelegramChatDto;
+import it.nukleo.recaptelegrambot.dto.response.TelegramMessageDto;
+import it.nukleo.recaptelegrambot.dto.response.TelegramUpdateDto;
+import it.nukleo.recaptelegrambot.entity.TelegramChatEntity;
+import it.nukleo.recaptelegrambot.entity.TelegramMessageEntity;
+import it.nukleo.recaptelegrambot.repository.TelegramChatRepository;
+import it.nukleo.recaptelegrambot.repository.TelegramMessageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,12 +19,12 @@ import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
-public class TelegramWebhookService {
+public class TelegramService {
 
     private final TelegramChatRepository telegramChatRepository;
     private final TelegramMessageRepository telegramMessageRepository;
     private final TelegramApiClient telegramApiClient;
-    private final GeminiApiService geminiApiService;
+    private final GeminiApiClient geminiApiClient;
 
     public void handleUpdate(TelegramUpdateDto update) {
         if(update.getMessage() != null) {
@@ -38,6 +38,7 @@ public class TelegramWebhookService {
         String chatType=message.getChat().getType();
         String text =  message.getText();
         Long chatId = message.getChat().getId();
+
         if (message.getFrom().getIsBot() ||(text == null || text.isBlank()) || (!"group".equals(chatType) && !"supergroup".equals(chatType))) {
             return;
         }

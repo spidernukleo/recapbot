@@ -1,6 +1,6 @@
-package it.nukleo.recaptelegrambot.telegram.repository;
+package it.nukleo.recaptelegrambot.repository;
 
-import it.nukleo.recaptelegrambot.telegram.entity.TelegramChatEntity;
+import it.nukleo.recaptelegrambot.entity.TelegramChatEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

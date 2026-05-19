@@ -1,4 +1,4 @@
-package it.nukleo.recaptelegrambot.telegram.dto.response;
+package it.nukleo.recaptelegrambot.dto.response;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;

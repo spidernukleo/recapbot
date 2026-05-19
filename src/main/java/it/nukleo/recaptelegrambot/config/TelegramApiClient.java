@@ -1,6 +1,6 @@
-package it.nukleo.recaptelegrambot.telegram.client;
+package it.nukleo.recaptelegrambot.config;
 
-import it.nukleo.recaptelegrambot.telegram.dto.request.TelegramSendMessageDto;
+import it.nukleo.recaptelegrambot.dto.request.TelegramSendMessageDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;

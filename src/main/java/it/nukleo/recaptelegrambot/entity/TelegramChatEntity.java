@@ -1,4 +1,4 @@
-package it.nukleo.recaptelegrambot.telegram.entity;
+package it.nukleo.recaptelegrambot.entity;
 
 
 import jakarta.persistence.*;
