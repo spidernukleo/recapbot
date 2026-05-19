@@ -2,6 +2,24 @@ package it.nukleo.recaptelegrambot.telegram.persistence.repository;
 
 import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramMessageEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 public interface TelegramMessageRepository extends JpaRepository<TelegramMessageEntity, Long> {
+
+    @Query("""
+        select m
+        from TelegramMessageEntity m
+        where m.chatId = :chatId and m.sentAt between :from and :to
+        order by m.sentAt asc
+    """)
+    List<TelegramMessageEntity> findMessagesForRecap(
+            @Param("chatId") Long chatId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
 }

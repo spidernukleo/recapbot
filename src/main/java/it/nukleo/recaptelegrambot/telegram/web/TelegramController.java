@@ -1,4 +1,4 @@
-package it.nukleo.recaptelegrambot.telegram.controller;
+package it.nukleo.recaptelegrambot.telegram.web;
 
 
 import it.nukleo.recaptelegrambot.telegram.service.TelegramService;
@@ -13,12 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class TelegramController {
 
-    private final TelegramService telegramWebhookService;
+    private final TelegramService telegramService;
 
     @PostMapping("/webhook")
     public ResponseEntity<Void> onUpdate(@RequestBody TelegramUpdateDto update) {
         try{
-            telegramWebhookService.handleUpdate(update);
+            telegramService.handleUpdate(update);
         } catch (Exception e){
             System.out.println("ERRORE "+e.getMessage());
         }

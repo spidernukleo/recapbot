@@ -1,7 +1,7 @@
-package it.nukleo.recaptelegrambot.llm;
+package it.nukleo.recaptelegrambot.llm.client;
 
 import java.util.concurrent.CompletableFuture;
 
-public interface LLmService {
+public interface LlmClient {
     CompletableFuture<String> generateText(String prompt);
 }

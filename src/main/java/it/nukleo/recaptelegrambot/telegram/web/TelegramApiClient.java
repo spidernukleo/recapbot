@@ -1,4 +1,4 @@
-package it.nukleo.recaptelegrambot.telegram;
+package it.nukleo.recaptelegrambot.telegram.web;
 
 import it.nukleo.recaptelegrambot.config.TelegramBotProperties;
 import it.nukleo.recaptelegrambot.telegram.dto.request.TelegramSendMessageDto;
