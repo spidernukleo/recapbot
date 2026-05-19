@@ -4,12 +4,13 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 application-local.properties
-application-local.yml
 application-secrets.properties
-application-secrets.yml
 .env
 .env.*
 !.env.example
+data/
+*.mv.db
+*.trace.db
 
 ### STS ###
 .apt_generated
