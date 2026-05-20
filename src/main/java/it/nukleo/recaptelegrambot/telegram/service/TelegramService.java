@@ -9,7 +9,6 @@ import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramMessageDto;
 import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramUpdateDto;
 import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramChatEntity;
 import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramMessageEntity;
-import it.nukleo.recaptelegrambot.telegram.persistence.repository.TelegramChatRepository;
 import it.nukleo.recaptelegrambot.telegram.persistence.repository.TelegramMessageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,7 +22,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TelegramService {
 
-    private final TelegramChatRepository telegramChatRepository;
     private final TelegramMessageRepository telegramMessageRepository;
     private final TelegramApiClient telegramApiClient;
     private final LlmService llmService;
@@ -48,7 +46,6 @@ public class TelegramService {
         if(text.startsWith("/recap") || text.startsWith("/Recap")) {
             LocalDateTime to = LocalDateTime.now();
             LocalDateTime from = to.minusHours(24);
-
             List<TelegramMessageEntity> messages = telegramMessageRepository.findMessagesForRecap(chatId, from, to);
 
             llmService.generateRecap(messages)
@@ -95,16 +92,6 @@ public class TelegramService {
         );
         savedMessage.setUserFirstName(dto.getFrom().getFirstName());
         return telegramMessageRepository.save(savedMessage);
-    }
-
-    private TelegramChatEntity getOrCreateChat(TelegramChatDto chatDto) {
-        return telegramChatRepository.findByChatId(chatDto.getId())
-                .orElseGet(() -> {
-                    TelegramChatEntity chat = new TelegramChatEntity();
-                    chat.setChatId(chatDto.getId());
-                    chat.setType(chatDto.getType());
-                    return telegramChatRepository.save(chat);
-                });
     }
 
 }

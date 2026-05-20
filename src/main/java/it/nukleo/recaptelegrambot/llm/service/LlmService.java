@@ -1,7 +1,7 @@
 package it.nukleo.recaptelegrambot.llm.service;
 
 
-import it.nukleo.recaptelegrambot.llm.client.LlmClient;
+import it.nukleo.recaptelegrambot.llm.web.LlmClient;
 import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramMessageEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;

@@ -1,4 +1,4 @@
-package it.nukleo.recaptelegrambot.llm.client;
+package it.nukleo.recaptelegrambot.llm.web;
 
 import it.nukleo.recaptelegrambot.config.GeminiApiProperties;
 import it.nukleo.recaptelegrambot.llm.dto.request.GeminiRequestDto;

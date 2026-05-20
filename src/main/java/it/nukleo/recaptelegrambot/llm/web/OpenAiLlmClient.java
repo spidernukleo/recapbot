@@ -1,4 +1,4 @@
-package it.nukleo.recaptelegrambot.llm.client;
+package it.nukleo.recaptelegrambot.llm.web;
 
 import org.springframework.stereotype.Service;
 
