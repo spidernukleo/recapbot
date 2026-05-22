@@ -21,4 +21,6 @@ public class TelegramMessageDto {
 
     @JsonProperty("reply_to_message")
     private TelegramMessageDto replyToMessage;
+
+    private TelegramVoiceDto voice;
 }

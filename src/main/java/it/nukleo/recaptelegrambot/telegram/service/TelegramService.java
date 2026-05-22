@@ -2,12 +2,12 @@ package it.nukleo.recaptelegrambot.telegram.service;
 
 
 import it.nukleo.recaptelegrambot.llm.service.LlmService;
+import it.nukleo.recaptelegrambot.telegram.dto.request.TelegramSendReactionDto;
+import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramReactionEmojiDto;
 import it.nukleo.recaptelegrambot.telegram.web.TelegramApiClient;
 import it.nukleo.recaptelegrambot.telegram.dto.request.TelegramSendMessageDto;
-import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramChatDto;
 import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramMessageDto;
 import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramUpdateDto;
-import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramChatEntity;
 import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramMessageEntity;
 import it.nukleo.recaptelegrambot.telegram.persistence.repository.TelegramMessageRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,56 +30,77 @@ public class TelegramService {
         if(update.getMessage() != null) {
             handleMessage(update.getMessage());
         }
-
-        //gestire altri tipi di evento?
     }
 
     private void handleMessage(TelegramMessageDto message) {
-        String chatType=message.getChat().getType();
-        String text =  message.getText();
+        String chatType = message.getChat().getType();
+        if (!"group".equals(chatType) && !"supergroup".equals(chatType)) {
+            return;
+        }
+
+        if (Boolean.TRUE.equals(message.getFrom().getIsBot())) {
+            return;
+        }
+
+        if (message.getVoice() != null) {
+            System.out.println("Voice arrivato");
+            return;
+        }
+
+        String text =message.getText();
+
+        if (text == null || text.isBlank()) {
+            return;
+        }
+
+        if (text.trim().toLowerCase().startsWith("/recap")) {
+            handleRecap(message);
+            return;
+        }
+
+        saveMessage(message);
+    }
+
+
+    private void handleRecap(TelegramMessageDto message) {
         Long chatId = message.getChat().getId();
-        if (message.getFrom().getIsBot() ||(text == null || text.isBlank()) || (!"group".equals(chatType) && !"supergroup".equals(chatType))) {
+        String text = message.getText();
+        Long messageId = message.getMessageId();
+        String[] parts = text.trim().split("\\s+");
+
+        if(parts.length > 2) {
+            telegramApiClient.sendReaction(chatId, messageId, "👎");
             return;
         }
 
-        //comandi
-        if(text.startsWith("/recap") || text.startsWith("/Recap")) {
-            LocalDateTime to = LocalDateTime.now();
-            LocalDateTime from = to.minusHours(24);
-            List<TelegramMessageEntity> messages = telegramMessageRepository.findMessagesForRecap(chatId, from, to);
+        telegramApiClient.sendReaction(chatId, messageId, "👀");
 
-            llmService.generateRecap(messages)
-                    .thenAccept(recap -> sendMessage(chatId, recap))
-                    .exceptionally(ex -> {
-                        sendMessage(chatId, "Errore durante la generazione del recap");
-                        System.out.printf("Errore: %s", ex.getMessage());
-                        return null;
-                    });
+//            List<TelegramMessageEntity> messages = telegramMessageRepository.findMessagesForRecap(chatId, from, to);
+//
+//            if (messages.isEmpty()) {
+        //  telegramApiClient.sendMessage(chatId, "Non ho trovato messaggi nel periodo richiesto.");
+//                return;
+//            }
+//
+//            System.out.printf(
+//                    "DEBUG - recap richiesto. durata=%s, keyword=%s%n",
+//                    command.duration(),
+//                    command.keyword()
+//            );
+//
+//            llmService.generateRecap(messages)
+//                    .thenAccept(recap -> sendMessage(chatId, recap))
+//                    .exceptionally(ex -> {
+//                        sendMessage(chatId, "Errore durante la generazione del recap");
+//                        System.out.printf("Errore: %s%n", ex.getMessage());
+//                        return null;
+//                    });
+//
+//        } catch (IllegalArgumentException ex) {
+//            sendMessage(message.getChat().getId(), ex.getMessage());
+//        }
 
-            return;
-        }
-
-
-
-        //se nessun comando: salvo messaggio
-        TelegramMessageEntity savedMessage = saveMessage(message);
     }
-
-
-
-
-    //chiama apiclient
-
-    private void sendMessage(Long chatid, String text){
-        TelegramSendMessageDto telegramSendMessageDto = new TelegramSendMessageDto();
-        telegramSendMessageDto.setChatId(chatid);
-        telegramSendMessageDto.setText(text);
-        telegramApiClient.sendMessage(telegramSendMessageDto);
-    }
-
-
-
-    //mappa e salva entita
 
     private TelegramMessageEntity saveMessage(TelegramMessageDto dto) {
         TelegramMessageEntity savedMessage = new TelegramMessageEntity();
@@ -91,6 +112,7 @@ public class TelegramService {
                         .toLocalDateTime()
         );
         savedMessage.setUserFirstName(dto.getFrom().getFirstName());
+        savedMessage.setMessageId(dto.getMessageId());
         return telegramMessageRepository.save(savedMessage);
     }
 

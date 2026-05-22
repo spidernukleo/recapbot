@@ -29,4 +29,7 @@ public class TelegramMessageEntity {
 
     @Column(name = "sent_at", nullable = false)
     private LocalDateTime sentAt;
+
+    @Column(name = "message_id", nullable = false)
+    private Long messageId;
 }
