@@ -3,10 +3,16 @@ package it.nukleo.recaptelegrambot.llm.service;
 
 import it.nukleo.recaptelegrambot.llm.web.LlmClient;
 import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramMessageEntity;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StreamUtils;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -14,79 +20,87 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Service
 public class LlmService {
-    @Qualifier("geminiLlmClient") //modifica qua col client llm che vuoi usare
+
+    @Qualifier("geminiLlmClient")
     private final LlmClient llmClient;
 
+    private final ResourceLoader resourceLoader;
 
-    public CompletableFuture<String> generateRecap(List<TelegramMessageEntity> messages) {
-        String prompt = this.buildPrompt(messages);
+    private String recapTemplate;
+
+    @PostConstruct
+    void init() {
+        recapTemplate = loadPrompt();
+    }
+
+    public CompletableFuture<String> generateRecap(List<TelegramMessageEntity> messages, String keyword) {
+        String prompt = buildPrompt(messages, keyword);
         return llmClient.generateText(prompt);
     }
 
+    private String buildPrompt(List<TelegramMessageEntity> messages, String keyword) {
+        String messagesText = messages.stream()
+                .map(this::formatMessageForPrompt)
+                .collect(Collectors.joining("\n"));
+
+        String focusRules;
+
+        if (keyword == null || keyword.isBlank()) {
+            focusRules = """
+                Obiettivo:
+                estrarre solo fatti, eventi, decisioni, aggiornamenti o richieste rilevanti emersi nei messaggi.
+
+                Criteri di selezione:
+                - Dai priorità massima alle informazioni universitarie e organizzative.
+                - Includi richieste utili solo se contengono un'informazione concreta o un bisogno rilevante per gli studenti.
+                - Escludi messaggi ripetitivi se non aggiungono nuove informazioni.
+                - Escludi conversazioni generiche che non producono un fatto utile o recuperabile.
+                - Se non emergono informazioni davvero rilevanti, rispondi esattamente con:
+                  - Nessuna informazione rilevante emersa nel periodo considerato.
+                """;
+        } else {
+            focusRules = """
+                In questo caso devi concentrarti solo sulle informazioni collegate alla seguente parola chiave o argomento:
+
+                PAROLA CHIAVE: "%s"
+
+                Obiettivo:
+                estrarre solo fatti, eventi, decisioni, aggiornamenti o richieste rilevanti che riguardano esplicitamente la parola chiave indicata oppure che sono chiaramente collegati ad essa nel contesto dei messaggi.
+
+                Criteri di selezione:
+                - Includi solo contenuti collegati alla parola chiave indicata.
+                - Considera rilevanti anche messaggi che non ripetono letteralmente la parola chiave ma che si riferiscono chiaramente allo stesso argomento nel contesto della conversazione.
+                - Escludi tutto ciò che non è collegato alla parola chiave, anche se potrebbe essere rilevante in generale per il gruppo.
+                - Dai priorità massima alle informazioni universitarie e organizzative collegate alla parola chiave.
+                - Escludi messaggi ripetitivi se non aggiungono nuove informazioni.
+                - Escludi chiacchiere, battute, saluti e rumore conversazionale.
+                - Se non emergono informazioni rilevanti collegate alla parola chiave, rispondi esattamente con:
+                  - Nessuna informazione rilevante emersa sulla parola chiave indicata nel periodo considerato.
+                """.formatted(keyword);
+        }
+
+        return recapTemplate
+                .replace("${FOCUS_RULES}", focusRules)
+                .replace("${CHAT_ID}", messages.getFirst().getChatId().toString().substring(4))
+                .replace("${MESSAGES_TEXT}", messagesText);
+    }
+
     private String formatMessageForPrompt(TelegramMessageEntity message) {
-        return "[%s] %s: %s".formatted(
+        return "[MID_%d][%s] %s: %s".formatted(
+                message.getMessageId(),
                 message.getSentAt(),
                 message.getUserFirstName(),
                 message.getText()
         );
     }
 
-    private String buildPrompt(List<TelegramMessageEntity> messages) {
-        String messagesText = messages.stream()
-                .map(this::formatMessageForPrompt)
-                .collect(Collectors.joining("\n"));
+    private String loadPrompt() {
+        Resource resource = resourceLoader.getResource("classpath:prompts/recap.txt");
 
-
-        return """
-            Devi analizzare messaggi di una chat Telegram e produrre un recap per eventi distinti.
-
-            Obiettivo:
-            estrarre solo i fatti, eventi o discussioni rilevanti avvenuti nel periodo considerato.
-
-            Regole obbligatorie di output:
-            - Rispondi solo in italiano.
-            - Rispondi solo in testo semplice.
-            - Ogni riga deve iniziare con "- ".
-            - Ogni riga deve avere obbligatoriamente questo formato:
-              - [nome oppure nomi coinvolti] [cosa è successo]
-            - Ogni bullet deve descrivere un solo evento, fatto o argomento rilevante.
-            - Non unire nello stesso bullet eventi diversi, anche se coinvolgono le stesse persone.
-            - Non raggruppare un'intera conversazione in un unico bullet se contiene temi diversi.
-            - Se ci sono più persone coinvolte nello stesso singolo evento, scrivile.
-            - Se i partecipanti sono molti, puoi scrivere "X, Y e altri" oppure "più partecipanti (X, Y, altri)".
-            - Mantieni ogni bullet breve, concreto e informativo.
-            - Se necessario, puoi aggiungere un breve dettaglio rilevante tra parentesi alla fine del bullet.
-            - Le parentesi devono contenere solo informazioni brevi e utili, per esempio una data, un risultato, un luogo o un chiarimento.
-            - Non usare parentesi per aggiungere commenti, interpretazioni o dettagli superflui.
-            - Non inventare nulla.
-            - Non dedurre sentimenti, relazioni o intenzioni se non sono espliciti nei messaggi.
-            - Non usare frasi generiche come "hanno parlato di varie cose", "hanno discusso di diversi temi".
-            - Se ci sono 4 eventi distinti, devi produrre 4 bullet distinti.
-            - Non scrivere introduzioni, conclusioni o testo fuori dai bullet.
-
-            Criteri di separazione:
-            - Se cambia argomento, crea un nuovo bullet.
-            - Se cambia il fatto raccontato, crea un nuovo bullet.
-            - Se una persona racconta due cose diverse, crea due bullet distinti.
-            - Unisci solo messaggi consecutivi che parlano chiaramente dello stesso identico fatto.
-
-            Esempi corretti:
-            - Mario aveva detto che sarebbe arrivato in ritardo alla cena (circa 20 minuti).
-            - Mario e Rossi avevano deciso di spostare la riunione a venerdì.
-            - più partecipanti (Mario, Rossi, Luca, altri) avevano discusso dei prezzi troppo alti del locale.
-            - Luca aveva raccontato di aver superato un esame importante (30 e lode).
-            - Anna aveva chiesto consigli per comprare un portatile nuovo.
-            - Rossi aveva condiviso l'orario del treno per Roma (partenza alle 08:45).
-           
-            
-            Esempi sbagliati:
-            - Mario e Rossi: avevano parlato della cena, della riunione, dei treni e di altre cose.
-            - Mario aveva fatto varie cose durante la giornata.
-            - Alcuni partecipanti avevano discusso di diversi argomenti.
-           
-            Messaggi da analizzare:
-            
-            """
-                + messagesText;
+        try {
+            return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException("Errore durante la lettura del prompt file");
+        }
     }
 }

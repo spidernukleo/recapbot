@@ -14,5 +14,5 @@ public class TelegramSendMessageDto {
     private String text;
 
     @JsonProperty("parse_mode")
-    private String parseMode = "Markdown";
+    private String parseMode = "HTML";
 }

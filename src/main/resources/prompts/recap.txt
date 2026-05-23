@@ -1,0 +1,55 @@
+Devi analizzare messaggi di una chat Telegram e produrre un recap sintetico per eventi distinti.
+
+Contesto:
+La chat appartiene principalmente a un gruppo universitario.
+Devi quindi dare priorità alle informazioni utili per la vita accademica, per esempio:
+- lezioni annullate o spostate
+- cambi di aula
+- orari delle lezioni o degli esami
+- date, scadenze, consegne, prenotazioni
+- comunicazioni di professori, tutor o rappresentanti
+- informazioni su esami, appelli, risultati, ricevimenti
+- materiali didattici, file, dispense, link utili
+- indicazioni organizzative importanti per gli studenti
+
+Puoi includere anche altri eventi o discussioni non strettamente universitarie solo se risultano chiaramente utili, concrete o rilevanti.
+Non dare importanza a rumore conversazionale, battute, saluti, messaggi vuoti, reazioni, commenti casuali o chiacchiere senza utilità pratica.
+
+${FOCUS_RULES}
+
+Regole obbligatorie di formato:
+- Rispondi solo in italiano.
+- Rispondi solo in testo semplice.
+- Ogni riga deve iniziare con "- ".
+- Ogni riga deve descrivere un solo evento, fatto, aggiornamento o argomento rilevante.
+- Ogni riga deve contenere sempre il nome della persona o delle persone coinvolte, se presenti nei messaggi.
+- Se ci sono più persone coinvolte nello stesso evento, scrivile esplicitamente.
+- Se i partecipanti sono molti, puoi scrivere "X, Y e altri" oppure "più partecipanti (X, Y, altri)".
+- Mantieni ogni bullet breve, concreto, informativo e facile da consultare.
+- Se utile, puoi aggiungere un breve dettaglio tra parentesi alla fine del bullet.
+- Le parentesi devono contenere solo dettagli brevi e rilevanti, per esempio una data, un luogo, un orario, una scadenza o un chiarimento utile.
+- Non usare parentesi per aggiungere commenti, interpretazioni o dettagli superflui.
+- Alla fine di ogni bullet devi aggiungere almeno un link cliccabile al messaggio sorgente.
+- Ogni link deve essere in formato HTML, usando esattamente questa struttura:
+  <a href="https://t.me/c/${CHAT_ID}/MID">[MID]</a>
+- Sostituisci MID con solo l'id numerico del messaggio sorgente.
+- Usa solo message id realmente presenti nell'input.
+- Se un evento è supportato da più messaggi, puoi aggiungere più link finali.
+- Non scrivere URL in chiaro fuori dal tag HTML.
+- Non inventare nulla.
+- Non dedurre informazioni non esplicite dai messaggi.
+- Non attribuire intenzioni, emozioni o conclusioni non presenti nel testo.
+- Non scrivere introduzioni, conclusioni, titoli o testo fuori dai bullet.
+- Usa solo le informazioni presenti nei messaggi forniti.
+- Se un'informazione non è presente chiaramente nei messaggi, non inserirla nel recap.
+
+Criteri di separazione:
+- Se cambia argomento, crea un nuovo bullet.
+- Se cambia il fatto raccontato, crea un nuovo bullet.
+- Se una persona comunica due informazioni diverse, crea due bullet distinti.
+- Unisci solo messaggi consecutivi che parlano chiaramente dello stesso identico fatto.
+
+Messaggi da analizzare:
+"""
+${MESSAGES_TEXT}
+"""

@@ -2,10 +2,7 @@ package it.nukleo.recaptelegrambot.telegram.service;
 
 
 import it.nukleo.recaptelegrambot.llm.service.LlmService;
-import it.nukleo.recaptelegrambot.telegram.dto.request.TelegramSendReactionDto;
-import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramReactionEmojiDto;
 import it.nukleo.recaptelegrambot.telegram.web.TelegramApiClient;
-import it.nukleo.recaptelegrambot.telegram.dto.request.TelegramSendMessageDto;
 import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramMessageDto;
 import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramUpdateDto;
 import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramMessageEntity;
@@ -13,10 +10,13 @@ import it.nukleo.recaptelegrambot.telegram.persistence.repository.TelegramMessag
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -61,48 +61,59 @@ public class TelegramService {
         saveMessage(message);
     }
 
-
     private void handleRecap(TelegramMessageDto message) {
         Long chatId = message.getChat().getId();
         String text = message.getText();
         Long messageId = message.getMessageId();
+        Long senderId =  message.getFrom().getId();
+
         String[] parts = text.trim().split("\\s+");
 
-        if(parts.length > 2) {
+        if (parts.length > 2) {
             telegramApiClient.sendReaction(chatId, messageId, "👎");
             return;
         }
 
         telegramApiClient.sendReaction(chatId, messageId, "👀");
 
-//            List<TelegramMessageEntity> messages = telegramMessageRepository.findMessagesForRecap(chatId, from, to);
-//
-//            if (messages.isEmpty()) {
-        //  telegramApiClient.sendMessage(chatId, "Non ho trovato messaggi nel periodo richiesto.");
-//                return;
-//            }
-//
-//            System.out.printf(
-//                    "DEBUG - recap richiesto. durata=%s, keyword=%s%n",
-//                    command.duration(),
-//                    command.keyword()
-//            );
-//
-//            llmService.generateRecap(messages)
-//                    .thenAccept(recap -> sendMessage(chatId, recap))
-//                    .exceptionally(ex -> {
-//                        sendMessage(chatId, "Errore durante la generazione del recap");
-//                        System.out.printf("Errore: %s%n", ex.getMessage());
-//                        return null;
-//                    });
-//
-//        } catch (IllegalArgumentException ex) {
-//            sendMessage(message.getChat().getId(), ex.getMessage());
-//        }
+        Duration duration = Duration.ofHours(24);
+        LocalDateTime to = LocalDateTime.now();
+        LocalDateTime from = to.minus(duration);
+        List<TelegramMessageEntity> messages = telegramMessageRepository.findMessagesForRecap(chatId, from, to);
+
+        if (parts.length == 1) {
+
+            llmService.generateRecap(messages, null)
+                    .thenAccept(result -> {
+                        telegramApiClient.sendMessage(senderId, "<b>Recap delle ultime 24 ore</b>\n"+result);
+                    });
+
+        }
+        else{
+            String keyword = parts[1].trim();
+
+            llmService.generateRecap(messages, keyword)
+                    .thenAccept(result -> {
+                        telegramApiClient.sendMessage(senderId, "<b>Recap delle ultime 24 ore per: "+keyword+"</b>\n"+result);
+                    });
+
+        }
+
+        return;
+
 
     }
 
-    private TelegramMessageEntity saveMessage(TelegramMessageDto dto) {
+
+
+
+
+
+
+
+
+
+    private void saveMessage(TelegramMessageDto dto) {
         TelegramMessageEntity savedMessage = new TelegramMessageEntity();
         savedMessage.setChatId(dto.getChat().getId());
         savedMessage.setText(dto.getText());
@@ -113,7 +124,7 @@ public class TelegramService {
         );
         savedMessage.setUserFirstName(dto.getFrom().getFirstName());
         savedMessage.setMessageId(dto.getMessageId());
-        return telegramMessageRepository.save(savedMessage);
+        telegramMessageRepository.save(savedMessage);
     }
 
 }

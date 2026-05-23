@@ -18,6 +18,7 @@ public class TelegramApiClient {
                 .build();
     }
 
+
     public void sendMessage(Long chatId,  String text) {
         TelegramSendMessageDto dto = new TelegramSendMessageDto();
         dto.setChatId(chatId);
@@ -31,13 +32,13 @@ public class TelegramApiClient {
                 .toBodilessEntity();
     }
 
+
     public void sendReaction(Long chatId, Long messageId, String emoji) {
         TelegramSendReactionDto dto = new TelegramSendReactionDto();
         TelegramReactionEmojiDto emojiDto = new TelegramReactionEmojiDto(emoji);
         dto.setChatId(chatId);
         dto.setMessageId(messageId);
         dto.setReaction(new TelegramReactionEmojiDto[]{emojiDto});
-
 
         telegramRestClient.post()
                 .uri("/setMessageReaction")
