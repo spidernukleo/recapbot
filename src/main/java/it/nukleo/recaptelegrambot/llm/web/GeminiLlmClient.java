@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
 @Service("geminiLlmClient")
@@ -22,8 +23,8 @@ public class GeminiLlmClient implements LlmClient {
     }
 
     @Override
-    @Async("geminiExecutor")
-    public CompletableFuture<String> generateText(String prompt) {
+    @Async("textExecutor")
+    public CompletableFuture<String> generateTextFromPrompt(String prompt) {
         GeminiResponseDto response = geminiRestClient.post()
                 .uri(":generateContent")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -36,7 +37,7 @@ public class GeminiLlmClient implements LlmClient {
     }
 
     @Override
-    public CompletableFuture<String> transcribeText(byte[] audioBytes) {
+    public CompletableFuture<String> transcribeAudio(Path path){
         return null;
     }
 }

@@ -11,13 +11,25 @@ import java.util.concurrent.Executor;
 @EnableAsync
 public class AsyncConfig {
 
-    @Bean(name = "geminiExecutor")
-    public Executor geminiExecutor() {
+    @Bean(name = "textExecutor")
+    public Executor textExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(4);
         executor.setMaxPoolSize(8);
         executor.setQueueCapacity(50);
-        executor.setThreadNamePrefix("gemini-");
+        executor.setThreadNamePrefix("text-");
+        executor.initialize();
+        return executor;
+    }
+
+
+    @Bean(name = "voiceExecutor")
+    public Executor voiceExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(4);
+        executor.setMaxPoolSize(8);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("voice-");
         executor.initialize();
         return executor;
     }

@@ -6,25 +6,34 @@ import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramMessageEnt
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
 @Service
 public class LlmService {
 
-    @Qualifier("geminiLlmClient")
-    private final LlmClient llmClient;
-
+    private final LlmClient recapLlmClient;
+    private final LlmClient transcriptionLlmClient;
     private final ResourceLoader resourceLoader;
+
+    public LlmService(
+            @Qualifier("geminiLlmClient") LlmClient recapLlmClient,
+            @Qualifier("localLlmClient") LlmClient transcriptionLlmClient,
+            ResourceLoader resourceLoader
+    ) {
+        this.recapLlmClient = recapLlmClient;
+        this.transcriptionLlmClient = transcriptionLlmClient;
+        this.resourceLoader = resourceLoader;
+    }
+
 
     private String recapBasePrompt;
     private String recapKeywordPrompt;
@@ -36,9 +45,13 @@ public class LlmService {
 
     }
 
+    public CompletableFuture<String> generateTranscription(Path audioFile) throws Exception {
+        return transcriptionLlmClient.transcribeAudio(audioFile);
+    }
+
     public CompletableFuture<String> generateRecap(List<TelegramMessageEntity> messages, String keyword) {
         String prompt = buildPrompt(messages, keyword);
-        return llmClient.generateText(prompt);
+        return recapLlmClient.generateTextFromPrompt(prompt);
     }
 
     private String buildPrompt(List<TelegramMessageEntity> messages, String keyword) {

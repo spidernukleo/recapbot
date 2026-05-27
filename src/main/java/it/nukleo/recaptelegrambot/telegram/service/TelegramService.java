@@ -2,15 +2,20 @@ package it.nukleo.recaptelegrambot.telegram.service;
 
 
 import it.nukleo.recaptelegrambot.llm.service.LlmService;
+import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramVoiceDto;
 import it.nukleo.recaptelegrambot.telegram.web.TelegramApiClient;
 import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramMessageDto;
 import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramUpdateDto;
 import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramMessageEntity;
 import it.nukleo.recaptelegrambot.telegram.persistence.repository.TelegramMessageRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.system.ApplicationHome;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -27,13 +32,13 @@ public class TelegramService {
     private final TelegramApiClient telegramApiClient;
     private final LlmService llmService;
 
-    public void handleUpdate(TelegramUpdateDto update) {
+    public void handleUpdate(TelegramUpdateDto update) throws Exception {
         if(update.getMessage() != null) {
             handleMessage(update.getMessage());
         }
     }
 
-    private void handleMessage(TelegramMessageDto message) {
+    private void handleMessage(TelegramMessageDto message) throws Exception {
         String chatType = message.getChat().getType();
         String text = message.getText();
 
@@ -41,8 +46,8 @@ public class TelegramService {
         if (Boolean.TRUE.equals(message.getFrom().getIsBot())) return;
 
         if (message.getVoice() != null) {
-            System.out.println("Voice arrivato");
-            return; // TODO trascrizione
+            handleTranscription(message);
+            return;
         }
 
         if (text == null || text.isBlank()) {
@@ -58,6 +63,35 @@ public class TelegramService {
 
         /// SE NESSUN COMANDO, SALVA MESSAGGIO
         saveMessage(message);
+    }
+
+    private void handleTranscription(TelegramMessageDto message) throws Exception {
+        Long chatId = message.getChat().getId();
+        Long messageId = message.getMessageId();
+
+        telegramApiClient.sendReaction(chatId, messageId, "👀");
+        String filePath = telegramApiClient.getFilePath(message.getVoice().getFileId());
+        byte[] audioBytes = telegramApiClient.downloadFile(filePath);
+
+        String fileName = Path.of(filePath).getFileName().toString();
+        String extension = fileName.contains(".") ? fileName.substring(fileName.lastIndexOf('.')) : "";
+
+        Path appDir = new ApplicationHome(getClass()).getDir().toPath();
+        Path savedFile = appDir.resolve("voice-" + messageId + extension);
+        Files.write(savedFile, audioBytes);
+
+        llmService.generateTranscription(savedFile)
+                .thenAccept(result -> {
+                    telegramApiClient.sendMessage(chatId, result);
+                    message.setText(result);
+                    saveMessage(message);
+                })
+                .exceptionally(ex -> {
+                    ex.printStackTrace();
+                    return null;
+                });
+
+
     }
 
     private void handleRecap(TelegramMessageDto message) {
