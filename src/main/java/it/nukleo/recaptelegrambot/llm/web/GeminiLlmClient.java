@@ -34,4 +34,9 @@ public class GeminiLlmClient implements LlmClient {
         String text = response != null ? response.extractText() : null;
         return CompletableFuture.completedFuture(text);
     }
+
+    @Override
+    public CompletableFuture<String> transcribeText(byte[] audioBytes) {
+        return null;
+    }
 }

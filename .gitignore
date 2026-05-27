@@ -11,6 +11,7 @@ application-secrets.properties
 data/
 *.mv.db
 *.trace.db
+local/
 
 ### STS ###
 .apt_generated

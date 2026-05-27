@@ -1,12 +1,8 @@
 package it.nukleo.recaptelegrambot.llm.web;
 
-import org.springframework.stereotype.Service;
-
 import java.util.concurrent.CompletableFuture;
 
-@Service
-public class OpenAiLlmClient implements LlmClient {
-
+public class LocalLlmClient implements LlmClient {
     @Override
     public CompletableFuture<String> generateText(String prompt) {
         return null;
@@ -16,5 +12,4 @@ public class OpenAiLlmClient implements LlmClient {
     public CompletableFuture<String> transcribeText(byte[] audioBytes) {
         return null;
     }
-
 }

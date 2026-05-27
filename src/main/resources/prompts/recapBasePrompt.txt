@@ -15,7 +15,16 @@ Devi quindi dare priorità alle informazioni utili per la vita accademica, per e
 Puoi includere anche altri eventi o discussioni non strettamente universitarie solo se risultano chiaramente utili, concrete o rilevanti.
 Non dare importanza a rumore conversazionale, battute, saluti, messaggi vuoti, reazioni, commenti casuali o chiacchiere senza utilità pratica.
 
-${FOCUS_RULES}
+Obiettivo:
+estrarre solo fatti, eventi, decisioni, aggiornamenti o richieste rilevanti emersi nei messaggi.
+
+Criteri di selezione:
+- Dai priorità massima alle informazioni universitarie e organizzative.
+- Includi richieste utili solo se contengono un'informazione concreta o un bisogno rilevante per gli studenti.
+- Escludi messaggi ripetitivi se non aggiungono nuove informazioni.
+- Escludi conversazioni generiche che non producono un fatto utile o recuperabile.
+
+${KEYWORD}
 
 Regole obbligatorie di formato:
 - Rispondi solo in italiano.
@@ -31,7 +40,7 @@ Regole obbligatorie di formato:
 - Non usare parentesi per aggiungere commenti, interpretazioni o dettagli superflui.
 - Alla fine di ogni bullet devi aggiungere almeno un link cliccabile al messaggio sorgente.
 - Ogni link deve essere in formato HTML, usando esattamente questa struttura:
-  <a href="https://t.me/c/${CHAT_ID}/MID">[MID]</a>
+  <a href="https://t.me/c/${CHAT_ID}/MID">[*]</a>
 - Sostituisci MID con solo l'id numerico del messaggio sorgente.
 - Usa solo message id realmente presenti nell'input.
 - Se un evento è supportato da più messaggi, puoi aggiungere più link finali.
@@ -49,7 +58,10 @@ Criteri di separazione:
 - Se una persona comunica due informazioni diverse, crea due bullet distinti.
 - Unisci solo messaggi consecutivi che parlano chiaramente dello stesso identico fatto.
 
+Se non emergono informazioni davvero rilevanti, rispondi esattamente con:
+- Nessuna informazione rilevante emersa nel periodo considerato.
+
 Messaggi da analizzare:
 """
-${MESSAGES_TEXT}
+${MESSAGES}
 """

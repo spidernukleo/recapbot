@@ -1,0 +1,7 @@
+Vincolo aggiuntivo per questa richiesta:
+- Devi concentrarti solo sulle informazioni collegate alla seguente parola chiave o argomento: "${KEYWORD}".
+- Includi solo contenuti collegati alla parola chiave indicata.
+- Considera rilevanti anche messaggi che non ripetono letteralmente la parola chiave ma che si riferiscono chiaramente allo stesso argomento nel contesto della conversazione.
+- Escludi tutto ciò che non è collegato alla parola chiave, anche se potrebbe essere rilevante in generale per il gruppo.
+- Se non emergono informazioni rilevanti collegate alla parola chiave, rispondi esattamente con:
+  - Nessuna informazione rilevante emersa sulla parola chiave indicata nel periodo considerato.

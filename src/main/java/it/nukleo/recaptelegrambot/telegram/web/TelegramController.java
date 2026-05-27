@@ -20,7 +20,8 @@ public class TelegramController {
         try{
             telegramService.handleUpdate(update);
         } catch (Exception e){
-            System.out.println("ERRORE "+e.getMessage());
+            System.out.println("ERRORE "+e);
+            e.printStackTrace();
         }
 
         return ResponseEntity.ok().build();

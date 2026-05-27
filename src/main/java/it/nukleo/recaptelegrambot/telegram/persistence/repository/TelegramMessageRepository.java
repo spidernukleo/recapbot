@@ -1,6 +1,7 @@
 package it.nukleo.recaptelegrambot.telegram.persistence.repository;
 
 import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramMessageEntity;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,10 +17,21 @@ public interface TelegramMessageRepository extends JpaRepository<TelegramMessage
         where m.chatId = :chatId and m.sentAt between :from and :to
         order by m.sentAt asc
     """)
-    List<TelegramMessageEntity> findMessagesForRecap(
+    List<TelegramMessageEntity> findMessagesByDuration(
             @Param("chatId") Long chatId,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
+    );
+
+    @Query("""
+        select m
+        from TelegramMessageEntity m
+        where m.chatId = :chatId
+        order by m.sentAt desc
+    """)
+    List<TelegramMessageEntity> findMessagesByLimit(
+            @Param("chatId") Long chatId,
+            Pageable pageable
     );
 
 }

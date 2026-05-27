@@ -8,6 +8,7 @@ import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramUpdateDto;
 import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramMessageEntity;
 import it.nukleo.recaptelegrambot.telegram.persistence.repository.TelegramMessageRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -34,83 +35,161 @@ public class TelegramService {
 
     private void handleMessage(TelegramMessageDto message) {
         String chatType = message.getChat().getType();
-        if (!"group".equals(chatType) && !"supergroup".equals(chatType)) {
-            return;
-        }
+        String text = message.getText();
 
-        if (Boolean.TRUE.equals(message.getFrom().getIsBot())) {
-            return;
-        }
+        if (!"group".equals(chatType) && !"supergroup".equals(chatType)) return;
+        if (Boolean.TRUE.equals(message.getFrom().getIsBot())) return;
 
         if (message.getVoice() != null) {
             System.out.println("Voice arrivato");
-            return;
+            return; // TODO trascrizione
         }
-
-        String text =message.getText();
 
         if (text == null || text.isBlank()) {
             return;
         }
+        text = text.trim();
 
-        if (text.trim().toLowerCase().startsWith("/recap")) {
+        /// COMANDI DA QUA
+        if (text.toLowerCase().startsWith("/recap")){
             handleRecap(message);
             return;
         }
 
+        /// SE NESSUN COMANDO, SALVA MESSAGGIO
         saveMessage(message);
     }
 
     private void handleRecap(TelegramMessageDto message) {
         Long chatId = message.getChat().getId();
-        String text = message.getText();
         Long messageId = message.getMessageId();
-        Long senderId =  message.getFrom().getId();
+        Long senderId = message.getFrom().getId();
 
-        String[] parts = text.trim().split("\\s+");
+        String[] parts = message.getText().trim().split("\\s+");
 
-        if (parts.length > 2) {
+        if (parts.length > 2) { /// MASSIMO UN ARG AMMESSO
             telegramApiClient.sendReaction(chatId, messageId, "👎");
             return;
         }
 
         telegramApiClient.sendReaction(chatId, messageId, "👀");
 
-        Duration duration = Duration.ofHours(24);
-        LocalDateTime to = LocalDateTime.now();
-        LocalDateTime from = to.minus(duration);
-        List<TelegramMessageEntity> messages = telegramMessageRepository.findMessagesForRecap(chatId, from, to);
-
+        /// SE SENZA ARG, default 24h no keyword
         if (parts.length == 1) {
-
-            llmService.generateRecap(messages, null)
-                    .thenAccept(result -> {
-                        telegramApiClient.sendMessage(senderId, "<b>Recap delle ultime 24 ore</b>\n"+result);
-                    });
-
-        }
-        else{
-            String keyword = parts[1].trim();
-
-            llmService.generateRecap(messages, keyword)
-                    .thenAccept(result -> {
-                        telegramApiClient.sendMessage(senderId, "<b>Recap delle ultime 24 ore per: "+keyword+"</b>\n"+result);
-                    });
-
+            this.sendLast24hRecap(chatId, senderId);
+            return;
         }
 
-        return;
+        String arg = parts[1].trim();
 
+        /// SE ARG E' UN NUMERO, RECAP DEGLI ULTIMI n MESSAGGI
+        if (arg.matches("\\d+")) {
+            int limit =  Integer.parseInt(arg);
+            if(limit<1 || limit>10000 ) {
+                telegramApiClient.sendReaction(chatId, messageId, "👎");
+                return;
+            }
+
+            this.sendLastMessagesRecap(chatId, senderId, limit);
+            return;
+        }
+
+        /// SE MATCHA NELLA FORMA DI TEMPO 1m 1h 1d DOVE m=minuto h=ora d=giorno
+        Matcher timeMatcher = Pattern.compile("^(\\d+)([mhd])$").matcher(arg);
+        if (timeMatcher.matches()) {
+            this.sendTimeRangeRecap(chatId, senderId, Long.parseLong(timeMatcher.group(1)), timeMatcher.group(2));
+            return;
+        }
+
+        /// A MENO CHE NON SIA UNA FORMA DI TEMPO ERRATA COME 1s (recap secondi non ammesso), USA L'ARG COME KEYWORD
+        if (!arg.matches("^\\d+[a-zA-Z]+$")) {
+            this.sendKeywordRecap(chatId, senderId, arg);
+            return;
+        }
+
+        telegramApiClient.sendReaction(chatId, messageId, "👎");
 
     }
 
+    private void sendLast24hRecap(Long chatId, Long senderId){
+        Duration duration = Duration.ofHours(24);
+        LocalDateTime to = LocalDateTime.now();
+        LocalDateTime from = to.minus(duration);
 
+        List<TelegramMessageEntity> messages = telegramMessageRepository.findMessagesByDuration(chatId, from, to);
 
+        if (!messages.isEmpty()) {
+            llmService.generateRecap(messages, null)
+                    .thenAccept(result ->
+                            telegramApiClient.sendMessage(senderId, "<b>Recap delle ultime 24 ore</b>\n" + result)
+                    ).exceptionally(ex -> {
+                        telegramApiClient.sendMessage(senderId, "Errore durante la generazione del recap.");
+                        System.out.println(ex.getMessage());
+                        return null;
+                    });
+        }
+    }
 
+    private void sendLastMessagesRecap(Long chatId, Long senderId, int limit) {
+        List<TelegramMessageEntity> messages = telegramMessageRepository.findMessagesByLimit(chatId, PageRequest.of(0, limit));
 
+        if (!messages.isEmpty()) {
+            llmService.generateRecap(messages, null)
+                    .thenAccept(result ->
+                            telegramApiClient.sendMessage(senderId, "<b>Recap degli ultimi " + limit + " messaggi</b>\n" + result)
+                    )
+                    .exceptionally(ex -> {
+                        telegramApiClient.sendMessage(senderId, "Errore durante la generazione del recap.");
+                        System.out.println(ex.getMessage());
+                        return null;
+                    });
+        }
+    }
 
+    private void sendKeywordRecap(Long chatId, Long senderId, String keyword) {
+        Duration duration = Duration.ofHours(24);
+        LocalDateTime to = LocalDateTime.now();
+        LocalDateTime from = to.minus(duration);
 
+        List<TelegramMessageEntity> messages = telegramMessageRepository.findMessagesByDuration(chatId, from, to);
 
+        if (!messages.isEmpty()) {
+            llmService.generateRecap(messages, keyword)
+                    .thenAccept(result ->
+                            telegramApiClient.sendMessage(senderId, "<b>Recap delle ultime 24 ore per: " + keyword + "</b>\n" + result)
+                    ).exceptionally(ex -> {
+                        telegramApiClient.sendMessage(senderId, "Errore durante la generazione del recap.");
+                        System.out.println(ex.getMessage());
+                        return null;
+                    });
+        }
+    }
+
+    private void sendTimeRangeRecap(Long chatId, Long senderId, long amount, String unit) {
+        Duration duration = switch (unit) {
+            case "m" -> Duration.ofMinutes(amount);
+            case "h" -> Duration.ofHours(amount);
+            case "d" -> Duration.ofDays(amount);
+            default -> throw new IllegalArgumentException("Regex fallito unità non supportata: " + unit);
+        };
+
+        LocalDateTime to = LocalDateTime.now();
+        LocalDateTime from = to.minus(duration);
+
+        List<TelegramMessageEntity> messages = telegramMessageRepository.findMessagesByDuration(chatId, from, to);
+
+        if (!messages.isEmpty()) {
+            llmService.generateRecap(messages, null)
+                    .thenAccept(result ->
+                            telegramApiClient.sendMessage(senderId, "<b>Recap degli ultimi " + amount + unit + "</b>\n" + result)
+                    )
+                    .exceptionally(ex -> {
+                        telegramApiClient.sendMessage(senderId, "Errore durante la generazione del recap.");
+                        System.out.println(ex.getMessage());
+                        return null;
+                    });
+        }
+    }
 
 
     private void saveMessage(TelegramMessageDto dto) {

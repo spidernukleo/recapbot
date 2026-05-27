@@ -4,4 +4,7 @@ import java.util.concurrent.CompletableFuture;
 
 public interface LlmClient {
     CompletableFuture<String> generateText(String prompt);
+
+    CompletableFuture<String> transcribeText(byte[] audioBytes);
+
 }
