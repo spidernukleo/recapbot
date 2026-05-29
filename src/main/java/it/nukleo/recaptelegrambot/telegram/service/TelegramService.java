@@ -69,7 +69,8 @@ public class TelegramService {
         Long chatId = message.getChat().getId();
         Long messageId = message.getMessageId();
 
-        telegramApiClient.sendReaction(chatId, messageId, "👀");
+        TelegramMessageDto sentMex = telegramApiClient.replyToMessage(chatId, "✍ 🤔👂 ...", messageId);
+
         String filePath = telegramApiClient.getFilePath(message.getVoice().getFileId());
         byte[] audioBytes = telegramApiClient.downloadFile(filePath);
 
@@ -77,12 +78,12 @@ public class TelegramService {
         String extension = fileName.contains(".") ? fileName.substring(fileName.lastIndexOf('.')) : "";
 
         Path appDir = new ApplicationHome(getClass()).getDir().toPath();
-        Path savedFile = appDir.resolve("voice-" + messageId + extension);
+        Path savedFile = appDir.resolve("voice-" + messageId + chatId +extension);
         Files.write(savedFile, audioBytes);
 
         llmService.generateTranscription(savedFile)
                 .thenAccept(result -> {
-                    telegramApiClient.sendMessage(chatId, result);
+                    telegramApiClient.editMessage(chatId, sentMex.getMessageId(), result);
                     message.setText(result);
                     saveMessage(message);
                 })

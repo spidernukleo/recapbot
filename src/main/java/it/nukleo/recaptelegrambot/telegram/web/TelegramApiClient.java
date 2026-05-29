@@ -3,8 +3,8 @@ package it.nukleo.recaptelegrambot.telegram.web;
 import it.nukleo.recaptelegrambot.config.TelegramBotProperties;
 import it.nukleo.recaptelegrambot.telegram.dto.request.TelegramSendMessageDto;
 import it.nukleo.recaptelegrambot.telegram.dto.request.TelegramSendReactionDto;
-import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramGetFileResponseDto;
-import it.nukleo.recaptelegrambot.telegram.dto.response.TelegramReactionEmojiDto;
+import it.nukleo.recaptelegrambot.telegram.dto.response.*;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -24,17 +24,42 @@ public class TelegramApiClient {
     }
 
 
-    public void sendMessage(Long chatId,  String text) {
+    public TelegramMessageDto sendMessage(Long chatId, String text) {
+        return replyToMessage(chatId, text, null);
+    }
+
+
+    public TelegramMessageDto replyToMessage(Long chatId, String text, Long replyToMessageId) {
         TelegramSendMessageDto dto = new TelegramSendMessageDto();
         dto.setChatId(chatId);
         dto.setText(text);
+        dto.setReplyToMessageId(replyToMessageId);
 
-        telegramRestClient.post()
+        TelegramResponseDto<TelegramMessageDto> response = telegramRestClient.post()
                 .uri("/sendMessage")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(dto)
                 .retrieve()
-                .toBodilessEntity();
+                .body(new ParameterizedTypeReference<TelegramResponseDto<TelegramMessageDto>>() {});
+
+        return response.getResult();
+    }
+
+
+    public TelegramMessageDto editMessage(Long chatId, Long messageId, String text) {
+        TelegramEditMessageDto dto = new TelegramEditMessageDto();
+        dto.setChatId(chatId);
+        dto.setMessageId(messageId);
+        dto.setText(text);
+
+        TelegramResponseDto<TelegramMessageDto> response = telegramRestClient.post()
+                .uri("/editMessageText")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(dto)
+                .retrieve()
+                .body(new ParameterizedTypeReference<TelegramResponseDto<TelegramMessageDto>>() {});
+
+        return response.getResult();
     }
 
     public String getFilePath(String fileId) {

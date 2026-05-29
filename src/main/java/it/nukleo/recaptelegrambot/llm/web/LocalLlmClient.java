@@ -32,36 +32,9 @@ public class LocalLlmClient implements LlmClient {
     @Override
     @Async("voiceExecutor")
     public CompletableFuture<String> transcribeAudio(Path audioFile) throws Exception {
-        Path wavFile = convertToWav(audioFile);
-        return CompletableFuture.completedFuture(doTranscription(wavFile));
+        return CompletableFuture.completedFuture(doTranscription(audioFile));
     }
 
-    private Path convertToWav(Path audioFile) throws Exception {
-        String fileName = audioFile.getFileName().toString();
-        String baseName = fileName.substring(0, fileName.lastIndexOf('.'));
-        Path wavFile = audioFile.getParent().resolve(baseName + ".wav");
-
-        ProcessBuilder pb = new ProcessBuilder(
-                properties.getFfmpegPath(),
-                "-y",
-                "-i", audioFile.toAbsolutePath().toString(),
-                "-ar", "16000",
-                "-ac", "1",
-                "-c:a", "pcm_s16le",
-                wavFile.toAbsolutePath().toString()
-        );
-
-        pb.redirectErrorStream(true);
-        Process process = pb.start();
-        int exitCode = process.waitFor();
-
-        if (exitCode != 0) {
-            throw new IllegalStateException("ffmpeg failed with exit code " + exitCode);
-        }
-        Files.deleteIfExists(audioFile);
-
-        return wavFile;
-    }
 
     private String doTranscription(Path audioFile) throws Exception {
         String fileName = audioFile.getFileName().toString();

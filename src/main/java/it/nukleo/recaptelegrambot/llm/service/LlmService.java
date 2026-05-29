@@ -1,6 +1,7 @@
 package it.nukleo.recaptelegrambot.llm.service;
 
 
+import it.nukleo.recaptelegrambot.config.LocalLlmProperties;
 import it.nukleo.recaptelegrambot.llm.web.LlmClient;
 import it.nukleo.recaptelegrambot.telegram.persistence.entity.TelegramMessageEntity;
 import jakarta.annotation.PostConstruct;
@@ -12,6 +13,7 @@ import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -23,20 +25,21 @@ public class LlmService {
     private final LlmClient recapLlmClient;
     private final LlmClient transcriptionLlmClient;
     private final ResourceLoader resourceLoader;
+    private final LocalLlmProperties properties;
+    private String recapBasePrompt;
+    private String recapKeywordPrompt;
 
     public LlmService(
             @Qualifier("geminiLlmClient") LlmClient recapLlmClient,
             @Qualifier("localLlmClient") LlmClient transcriptionLlmClient,
-            ResourceLoader resourceLoader
+            ResourceLoader resourceLoader,
+            LocalLlmProperties properties
     ) {
         this.recapLlmClient = recapLlmClient;
         this.transcriptionLlmClient = transcriptionLlmClient;
         this.resourceLoader = resourceLoader;
+        this.properties = properties;
     }
-
-
-    private String recapBasePrompt;
-    private String recapKeywordPrompt;
 
     @PostConstruct
     void init() {
@@ -46,7 +49,8 @@ public class LlmService {
     }
 
     public CompletableFuture<String> generateTranscription(Path audioFile) throws Exception {
-        return transcriptionLlmClient.transcribeAudio(audioFile);
+        Path wavFile = convertToWav(audioFile);
+        return transcriptionLlmClient.transcribeAudio(wavFile);
     }
 
     public CompletableFuture<String> generateRecap(List<TelegramMessageEntity> messages, String keyword) {
@@ -76,6 +80,32 @@ public class LlmService {
                 message.getUserFirstName(),
                 message.getText()
         );
+    }
+
+    private Path convertToWav(Path audioFile) throws Exception {
+        String fileName = audioFile.getFileName().toString();
+        String baseName = fileName.substring(0, fileName.lastIndexOf('.'));
+        Path wavFile = audioFile.getParent().resolve(baseName + ".wav");
+
+        ProcessBuilder pb = new ProcessBuilder(
+                properties.getFfmpegPath(),
+                "-y",
+                "-i", audioFile.toAbsolutePath().toString(),
+                "-ar", "16000",
+                "-ac", "1",
+                "-c:a", "pcm_s16le",
+                wavFile.toAbsolutePath().toString()
+        );
+
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+        int exitCode = process.waitFor();
+        Files.deleteIfExists(audioFile);
+
+        if (exitCode != 0) throw new IllegalStateException("ffmpeg failed with exit code " + exitCode);
+
+        return wavFile;
+
     }
 
     private String loadPrompt(String path) {
