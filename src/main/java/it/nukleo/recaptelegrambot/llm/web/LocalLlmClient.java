@@ -43,7 +43,6 @@ public class LocalLlmClient implements LlmClient {
         Path outputBase = audioFile.getParent().resolve(baseName);
         Path txtFile = audioFile.getParent().resolve(baseName + ".txt");
 
-
         ProcessBuilder pb = new ProcessBuilder(
                 properties.getCliPath(),
                 "-m", properties.getModelPath(),
@@ -59,7 +58,10 @@ public class LocalLlmClient implements LlmClient {
         Process process = pb.start();
         int exitCode = process.waitFor();
 
-        if (exitCode != 0) throw new IllegalStateException("whisper-cli failed with exit code " + exitCode);
+        if (exitCode != 0) {
+            Files.deleteIfExists(audioFile);
+            throw new IllegalStateException("whisper-cli failed with exit code " + exitCode);
+        }
 
         String transcription;
 
